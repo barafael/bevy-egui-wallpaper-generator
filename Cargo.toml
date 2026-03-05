@@ -1,12 +1,8 @@
-[package]
-name = "tessel"
-version = "0.1.0"
-edition = "2024"
+[workspace]
 
-[dependencies]
-bevy = "0.18"
-bevy_egui = "0.39"
-rand = "0.8"
+resolver = "3"
+
+members = ["randomfart","tessel"]
 
 # Faster compilation in dev mode
 [profile.dev]
