@@ -6,6 +6,10 @@ edition = "2024"
 [lib]
 crate-type = ["cdylib", "rlib"]
 
+[[bin]]
+name = "randomfart-desktop"
+path = "src/main.rs"
+
 [dependencies]
 bevy = { version = "0.18", features = ["webgpu"] }
 bevy_egui = "0.39"
