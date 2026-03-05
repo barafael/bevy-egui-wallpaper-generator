@@ -261,26 +261,24 @@ fn ui(
     });
 
     let ctrl = keyboard.pressed(KeyCode::ControlLeft) || keyboard.pressed(KeyCode::ControlRight);
-    if ctrl {
-        if let Some(art) = &art {
-            egui::Window::new(
-                egui::RichText::new("// FORMULA")
-                    .monospace()
-                    .strong()
-                    .color(egui::Color32::WHITE),
-            )
-            .default_pos([10.0, 500.0])
-            .resizable(true)
-            .default_width(500.0)
-            .show(ctx, |ui| {
-                ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Wrap);
-                for (ch, expr) in [("R", &art.r), ("G", &art.g), ("B", &art.b)] {
-                    ui.label(hd(ch));
-                    ui.label(egui::RichText::new(expr.to_string()).monospace().size(10.0));
-                    ui.add_space(4.0);
-                }
-            });
-        }
+    if ctrl && let Some(art) = &art {
+        egui::Window::new(
+            egui::RichText::new("// FORMULA")
+                .monospace()
+                .strong()
+                .color(egui::Color32::WHITE),
+        )
+        .default_pos([10.0, 500.0])
+        .resizable(true)
+        .default_width(500.0)
+        .show(ctx, |ui| {
+            ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Wrap);
+            for (ch, expr) in [("R", &art.r), ("G", &art.g), ("B", &art.b)] {
+                ui.label(hd(ch));
+                ui.label(egui::RichText::new(expr.to_string()).monospace().size(10.0));
+                ui.add_space(4.0);
+            }
+        });
     }
 
     Ok(())

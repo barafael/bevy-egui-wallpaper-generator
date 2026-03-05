@@ -1373,6 +1373,7 @@ struct TesselMesh;
 
 // ── Setup ─────────────────────────────────────────────────────────────────────
 
+#[allow(clippy::too_many_arguments)]
 fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -1647,6 +1648,7 @@ fn setup(
 
 // ── UI ────────────────────────────────────────────────────────────────────────
 
+#[allow(clippy::too_many_arguments)]
 fn ui(
     mut ctx: EguiContexts,
     mut params: ResMut<Params>,
@@ -2898,25 +2900,17 @@ fn ui(
         }
     }
 
-    if ht_dirty {
-        if let Some(mat) = mats.ht.get_mut(&handles.ht_mat.0) {
-            mat.uniforms = params.to_ht_uniforms();
-        }
+    if ht_dirty && let Some(mat) = mats.ht.get_mut(&handles.ht_mat.0) {
+        mat.uniforms = params.to_ht_uniforms();
     }
-    if tp_dirty {
-        if let Some(mat) = mats.tp.get_mut(&handles.tp_mat.0) {
-            mat.uniforms = params.to_topo_uniforms();
-        }
+    if tp_dirty && let Some(mat) = mats.tp.get_mut(&handles.tp_mat.0) {
+        mat.uniforms = params.to_topo_uniforms();
     }
-    if ms_dirty {
-        if let Some(mat) = mats.ms.get_mut(&handles.ms_mat.0) {
-            mat.uniforms = params.to_mosaic_uniforms();
-        }
+    if ms_dirty && let Some(mat) = mats.ms.get_mut(&handles.ms_mat.0) {
+        mat.uniforms = params.to_mosaic_uniforms();
     }
-    if eg_dirty {
-        if let Some(mat) = mats.eg.get_mut(&handles.eg_mat.0) {
-            mat.uniforms = params.to_engrave_uniforms();
-        }
+    if eg_dirty && let Some(mat) = mats.eg.get_mut(&handles.eg_mat.0) {
+        mat.uniforms = params.to_engrave_uniforms();
     }
     if wfc_grid_dirty {
         let new_grid = run_wfc(
@@ -2927,63 +2921,41 @@ fn ui(
         );
         params.wfc_grid = new_grid;
     }
-    if wfc_grid_dirty || wfc_vis_dirty {
-        if let Some(mat) = mats.wfc.get_mut(&handles.wfc_mat.0) {
-            mat.uniforms = params.to_wfc_uniforms();
-        }
+    if (wfc_grid_dirty || wfc_vis_dirty) && let Some(mat) = mats.wfc.get_mut(&handles.wfc_mat.0) {
+        mat.uniforms = params.to_wfc_uniforms();
     }
-    if ck_dirty {
-        if let Some(mat) = mats.ck.get_mut(&handles.ck_mat.0) {
-            mat.uniforms = params.to_crackle_uniforms();
-        }
+    if ck_dirty && let Some(mat) = mats.ck.get_mut(&handles.ck_mat.0) {
+        mat.uniforms = params.to_crackle_uniforms();
     }
-    if ff_dirty {
-        if let Some(mat) = mats.ff.get_mut(&handles.ff_mat.0) {
-            mat.uniforms = params.to_ff_uniforms();
-        }
+    if ff_dirty && let Some(mat) = mats.ff.get_mut(&handles.ff_mat.0) {
+        mat.uniforms = params.to_ff_uniforms();
     }
-    if oa_dirty {
-        if let Some(mat) = mats.oa.get_mut(&handles.oa_mat.0) {
-            mat.uniforms = params.to_oa_uniforms();
-        }
+    if oa_dirty && let Some(mat) = mats.oa.get_mut(&handles.oa_mat.0) {
+        mat.uniforms = params.to_oa_uniforms();
     }
-    if wv_dirty {
-        if let Some(mat) = mats.wv.get_mut(&handles.wv_mat.0) {
-            mat.uniforms = params.to_wv_uniforms();
-        }
+    if wv_dirty && let Some(mat) = mats.wv.get_mut(&handles.wv_mat.0) {
+        mat.uniforms = params.to_wv_uniforms();
     }
-    if sa_dirty {
-        if let Some(mat) = mats.sa.get_mut(&handles.sa_mat.0) {
-            mat.uniforms = params.to_sa_uniforms();
-        }
+    if sa_dirty && let Some(mat) = mats.sa.get_mut(&handles.sa_mat.0) {
+        mat.uniforms = params.to_sa_uniforms();
     }
-    if rd_dirty {
-        if let Some(mat) = mats.rd.get_mut(&handles.rd_mat.0) {
-            mat.uniforms = params.to_rd_uniforms();
-        }
+    if rd_dirty && let Some(mat) = mats.rd.get_mut(&handles.rd_mat.0) {
+        mat.uniforms = params.to_rd_uniforms();
     }
     if mz_grid_dirty {
         params.mz_grid = run_maze(params.mz_grid_w, params.mz_grid_h, params.seed);
     }
-    if mz_grid_dirty || mz_vis_dirty {
-        if let Some(mat) = mats.mz.get_mut(&handles.mz_mat.0) {
-            mat.uniforms = params.to_mz_uniforms();
-        }
+    if (mz_grid_dirty || mz_vis_dirty) && let Some(mat) = mats.mz.get_mut(&handles.mz_mat.0) {
+        mat.uniforms = params.to_mz_uniforms();
     }
-    if cb_dirty {
-        if let Some(mat) = mats.cb.get_mut(&handles.cb_mat.0) {
-            mat.uniforms = params.to_cb_uniforms();
-        }
+    if cb_dirty && let Some(mat) = mats.cb.get_mut(&handles.cb_mat.0) {
+        mat.uniforms = params.to_cb_uniforms();
     }
-    if bp_dirty {
-        if let Some(mat) = mats.bp.get_mut(&handles.bp_mat.0) {
-            mat.uniforms = params.to_bp_uniforms();
-        }
+    if bp_dirty && let Some(mat) = mats.bp.get_mut(&handles.bp_mat.0) {
+        mat.uniforms = params.to_bp_uniforms();
     }
-    if blur_dirty {
-        if let Some(mat) = post.blur_mat.get_mut(&post.blur_h.0) {
-            mat.uniforms.radius = params.blur_radius;
-        }
+    if blur_dirty && let Some(mat) = post.blur_mat.get_mut(&post.blur_h.0) {
+        mat.uniforms.radius = params.blur_radius;
     }
 
     // Sync visibility: only one style visible at a time
@@ -3107,6 +3079,7 @@ fn build_lowpoly(p: &Params) -> Mesh {
     mesh_from(pos, col)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn lp_tri(
     pos: &mut Vec<[f32; 3]>,
     col: &mut Vec<[f32; 4]>,
@@ -3338,8 +3311,8 @@ fn wfc_compatible(a: u8, b: u8, dx: i32, dy: i32) -> bool {
     match (dx, dy) {
         (1, 0) => (a >> 1 & 1) == (b >> 3 & 1),  // a.right == b.left
         (-1, 0) => (a >> 3 & 1) == (b >> 1 & 1), // a.left  == b.right
-        (0, 1) => (a >> 2 & 1) == (b >> 0 & 1),  // a.bottom == b.top
-        (0, -1) => (a >> 0 & 1) == (b >> 2 & 1), // a.top   == b.bottom
+        (0, 1) => (a >> 2 & 1) == (b & 1),        // a.bottom == b.top
+        (0, -1) => (a & 1) == (b >> 2 & 1),       // a.top   == b.bottom
         _ => true,
     }
 }
@@ -3354,7 +3327,7 @@ fn run_wfc(w: usize, h: usize, tiles: &[u8], seed: u64) -> Vec<u8> {
     let h_t = if tiles.contains(&10) { 10 } else { tiles[0] };
     let v_t = if tiles.contains(&5) { 5 } else { tiles[0] };
     (0..w * h)
-        .map(|i| if (i / w + i % w) % 2 == 0 { h_t } else { v_t })
+        .map(|i| if (i / w + i % w).is_multiple_of(2) { h_t } else { v_t })
         .collect()
 }
 
@@ -3421,6 +3394,7 @@ fn try_wfc(w: usize, h: usize, tiles: &[u8], seed: u64) -> Option<Vec<u8>> {
 
 // ── Shared ────────────────────────────────────────────────────────────────────
 
+#[allow(clippy::too_many_arguments)]
 fn bilinear(
     x: f32,
     y: f32,
