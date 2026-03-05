@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cargo tree -i bevy_egui)",
+      "Bash(cargo tree)",
+      "Bash(cargo check)"
+    ]
+  }
+}
