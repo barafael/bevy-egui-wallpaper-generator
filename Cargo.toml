@@ -4,7 +4,10 @@ resolver = "3"
 
 members = ["randomfart","tessel"]
 
-# Faster compilation in dev mode
+[profile.release]
+lto = "fat"
+codegen-units = 1
+
 [profile.dev]
 opt-level = 1
 
