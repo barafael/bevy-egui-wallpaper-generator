@@ -1,3 +1,3 @@
 fn main() {
-    randomfart::main();
+    randomfart::start();
 }

@@ -10,7 +10,7 @@ use rayon::prelude::*;
 use std::fmt;
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen(start))]
-pub fn main() {
+pub fn start() {
     App::new()
         .add_plugins((
             DefaultPlugins.set(WindowPlugin {
@@ -35,11 +35,11 @@ pub fn main() {
 
 #[derive(Resource)]
 struct Params {
-    depth: u32,      // expression tree depth
-    anim_speed: f32, // radians / second for the sine oscillation
-    img_w: u32,      // render resolution
+    depth: u32,
+    anim_speed: f32,
+    img_w: u32,
     img_h: u32,
-    w_terminal: u32, // grammar weights
+    w_terminal: u32,
     w_add: u32,
     w_mult: u32,
     w_sqrt: u32,
@@ -51,11 +51,17 @@ struct Params {
 
 impl Default for Params {
     fn default() -> Self {
+        // Start at half resolution on WASM; single-threaded eval is ~4× slower
+        #[cfg(target_arch = "wasm32")]
+        let (img_w, img_h) = (400u32, 300u32);
+        #[cfg(not(target_arch = "wasm32"))]
+        let (img_w, img_h) = (800u32, 600u32);
+
         Self {
             depth: 7,
             anim_speed: 0.4,
-            img_w: 800,
-            img_h: 600,
+            img_w,
+            img_h,
             w_terminal: 2,
             w_add: 3,
             w_mult: 3,
@@ -78,6 +84,10 @@ struct ArtState {
     r: Expr,
     g: Expr,
     b: Expr,
+    // Flat bytecode programs — cache-friendly, no heap-pointer chasing per pixel
+    r_prog: Vec<Op>,
+    g_prog: Vec<Op>,
+    b_prog: Vec<Op>,
     image: Handle<Image>,
     img_w: u32,
     img_h: u32,
@@ -90,13 +100,7 @@ fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>, params: Res<
     let seed: u64 = rand::thread_rng().r#gen();
     let (state, handle) = new_art(seed, &params, &mut images);
     commands.insert_resource(state);
-    commands.spawn((
-        Sprite {
-            image: handle,
-            ..default()
-        },
-        ArtSprite,
-    ));
+    commands.spawn((Sprite { image: handle, ..default() }, ArtSprite));
 }
 
 fn handle_regen(
@@ -120,13 +124,7 @@ fn handle_regen(
     let seed: u64 = rand::thread_rng().r#gen();
     let (state, handle) = new_art(seed, &params, &mut images);
     commands.insert_resource(state);
-    commands.spawn((
-        Sprite {
-            image: handle,
-            ..default()
-        },
-        ArtSprite,
-    ));
+    commands.spawn((Sprite { image: handle, ..default() }, ArtSprite));
 }
 
 fn ui(
@@ -134,9 +132,14 @@ fn ui(
     mut params: ResMut<Params>,
     art: Option<Res<ArtState>>,
     keyboard: Res<ButtonInput<KeyCode>>,
+    mut style_done: Local<bool>,
 ) -> Result {
     let ctx = contexts.ctx_mut()?;
-    apply_style(ctx);
+    // Apply style once — egui Context persists across frames, no need to repeat
+    if !*style_done {
+        apply_style(ctx);
+        *style_done = true;
+    }
 
     const YELLOW: egui::Color32 = egui::Color32::from_rgb(255, 224, 102);
     let hd = |s: &str| egui::RichText::new(s).monospace().strong().color(YELLOW);
@@ -321,35 +324,30 @@ fn apply_style(ctx: &egui::Context) {
     v.selection.bg_fill = Color32::from_rgb(180, 130, 0);
     v.selection.stroke = s2y;
 
-    // noninteractive: labels, separators
     v.widgets.noninteractive.corner_radius = zero;
     v.widgets.noninteractive.bg_fill = panel;
     v.widgets.noninteractive.weak_bg_fill = panel;
     v.widgets.noninteractive.bg_stroke = Stroke::new(1.0, Color32::from_gray(55));
     v.widgets.noninteractive.fg_stroke = Stroke::new(1.0, Color32::from_gray(160));
 
-    // inactive: default button / slider track
     v.widgets.inactive.corner_radius = zero;
     v.widgets.inactive.bg_fill = Color32::from_gray(55);
     v.widgets.inactive.weak_bg_fill = Color32::from_gray(55);
     v.widgets.inactive.bg_stroke = s2w;
     v.widgets.inactive.fg_stroke = s2w;
 
-    // hovered
     v.widgets.hovered.corner_radius = zero;
     v.widgets.hovered.bg_fill = Color32::from_rgb(38, 38, 38);
     v.widgets.hovered.weak_bg_fill = Color32::from_rgb(38, 38, 38);
     v.widgets.hovered.bg_stroke = s2y;
     v.widgets.hovered.fg_stroke = s2y;
 
-    // active (dragging slider, pressed button)
     v.widgets.active.corner_radius = zero;
     v.widgets.active.bg_fill = yellow;
     v.widgets.active.weak_bg_fill = yellow;
     v.widgets.active.bg_stroke = s2w;
     v.widgets.active.fg_stroke = Stroke::new(2.0, bg);
 
-    // open (combo box open)
     v.widgets.open.corner_radius = zero;
     v.widgets.open.bg_fill = Color32::from_rgb(30, 30, 30);
     v.widgets.open.weak_bg_fill = Color32::from_rgb(30, 30, 30);
@@ -372,32 +370,55 @@ fn animate(
     art: Option<Res<ArtState>>,
     params: Res<Params>,
     time: Res<Time>,
+    // Local state persists across frames without touching ArtState's change detection
+    mut pixel_buf: Local<Vec<u8>>,
+    mut last_t: Local<f32>,
 ) {
     let Some(art) = art else { return };
 
     let t = (time.elapsed_secs() * params.anim_speed).sin();
-    let r = &art.r;
-    let g = &art.g;
-    let b = &art.b;
-    let (img_w, img_h) = (art.img_w, art.img_h);
-    let handle = art.image.clone();
 
-    let mut pixels = vec![255u8; (img_w * img_h * 4) as usize];
+    // Skip render when t is unchanged (only meaningful when anim_speed = 0) or
+    // when new art was just inserted (is_changed() forces the first render).
+    if !art.is_changed() && (t - *last_t).abs() < 1e-5 {
+        return;
+    }
+    *last_t = t;
+
+    let (img_w, img_h) = (art.img_w, art.img_h);
+    let size = (img_w * img_h * 4) as usize;
+
+    // Reuse buffer across frames; reallocate only when resolution changes.
+    // Alpha channel is always 255 — we never overwrite chunk[3].
+    if pixel_buf.len() != size {
+        *pixel_buf = vec![255u8; size];
+    }
+
+    let r = art.r_prog.as_slice();
+    let g = art.g_prog.as_slice();
+    let b = art.b_prog.as_slice();
+
     let eval = |(i, chunk): (usize, &mut [u8])| {
         let i = i as u32;
-        let y = (i / img_w) as f32 / img_h as f32 * 2.0 - 1.0;
-        let x = (i % img_w) as f32 / img_w as f32 * 2.0 - 1.0;
-        chunk[0] = channel(r.eval(x, y, t));
-        chunk[1] = channel(g.eval(x, y, t));
-        chunk[2] = channel(b.eval(x, y, t));
+        let py = (i / img_w) as f32 / img_h as f32 * 2.0 - 1.0;
+        let px = (i % img_w) as f32 / img_w as f32 * 2.0 - 1.0;
+        chunk[0] = channel(eval_program(r, px, py, t));
+        chunk[1] = channel(eval_program(g, px, py, t));
+        chunk[2] = channel(eval_program(b, px, py, t));
     };
-    #[cfg(not(target_arch = "wasm32"))]
-    pixels.par_chunks_mut(4).enumerate().for_each(eval);
-    #[cfg(target_arch = "wasm32")]
-    pixels.chunks_mut(4).enumerate().for_each(eval);
 
+    #[cfg(not(target_arch = "wasm32"))]
+    pixel_buf.par_chunks_mut(4).enumerate().for_each(eval);
+    #[cfg(target_arch = "wasm32")]
+    pixel_buf.chunks_mut(4).enumerate().for_each(eval);
+
+    // Write into the image's existing Vec when possible (avoids reallocation).
+    let handle = art.image.clone();
     if let Some(image) = images.get_mut(&handle) {
-        image.data = Some(pixels);
+        match &mut image.data {
+            Some(data) if data.len() == size => data.copy_from_slice(&pixel_buf),
+            slot => *slot = Some(pixel_buf.clone()),
+        }
     }
 }
 
@@ -421,29 +442,114 @@ fn new_art(seed: u64, params: &Params, images: &mut Assets<Image>) -> (ArtState,
     let g = Expr::generate(&mut rng, params.depth, params);
     let b = Expr::generate(&mut rng, params.depth, params);
 
+    let mut r_prog = Vec::new();
+    let mut g_prog = Vec::new();
+    let mut b_prog = Vec::new();
+    r.compile(&mut r_prog);
+    g.compile(&mut g_prog);
+    b.compile(&mut b_prog);
+
+    let (img_w, img_h) = (params.img_w, params.img_h);
+    let size = (img_w * img_h * 4) as usize;
+
+    // Render t=0 immediately so the sprite isn't blank on its first frame.
+    let mut pixels = vec![255u8; size];
+    let eval = |(i, chunk): (usize, &mut [u8])| {
+        let i = i as u32;
+        let py = (i / img_w) as f32 / img_h as f32 * 2.0 - 1.0;
+        let px = (i % img_w) as f32 / img_w as f32 * 2.0 - 1.0;
+        chunk[0] = channel(eval_program(&r_prog, px, py, 0.0));
+        chunk[1] = channel(eval_program(&g_prog, px, py, 0.0));
+        chunk[2] = channel(eval_program(&b_prog, px, py, 0.0));
+    };
+    #[cfg(not(target_arch = "wasm32"))]
+    pixels.par_chunks_mut(4).enumerate().for_each(eval);
+    #[cfg(target_arch = "wasm32")]
+    pixels.chunks_mut(4).enumerate().for_each(eval);
+
     let image = Image::new(
-        Extent3d {
-            width: params.img_w,
-            height: params.img_h,
-            depth_or_array_layers: 1,
-        },
+        Extent3d { width: img_w, height: img_h, depth_or_array_layers: 1 },
         TextureDimension::D2,
-        vec![0u8; (params.img_w * params.img_h * 4) as usize],
+        pixels,
         TextureFormat::Rgba8UnormSrgb,
         RenderAssetUsages::MAIN_WORLD | RenderAssetUsages::RENDER_WORLD,
     );
     let handle = images.add(image);
     (
-        ArtState {
-            r,
-            g,
-            b,
-            image: handle.clone(),
-            img_w: params.img_w,
-            img_h: params.img_h,
-        },
+        ArtState { r, g, b, r_prog, g_prog, b_prog, image: handle.clone(), img_w, img_h },
         handle,
     )
+}
+
+// ─── Bytecode VM ─────────────────────────────────────────────────────────────
+
+/// Flat stack-machine opcode. `Copy` so we can iterate by value.
+#[derive(Clone, Copy)]
+enum Op {
+    X,
+    Y,
+    T,
+    Num(f32),
+    Add,
+    Mult,
+    Sqrt, // sqrt(abs(top))
+    Abs,
+    Sin, // sin(π·top)
+    Mod, // normalized euclid-mod
+    Mix, // mix(a, b; weight=c) — pops c, b, a
+}
+
+/// Evaluate a compiled program on the stack machine.
+///
+/// Stack depth is bounded by 2·depth+1 (worst case: all-Mix tree).
+/// 32 slots covers depth ≤ 15 with room to spare.
+fn eval_program(ops: &[Op], x: f32, y: f32, t: f32) -> f32 {
+    let mut stack = [0f32; 32];
+    let mut sp = 0usize;
+    for &op in ops {
+        match op {
+            Op::X => {
+                stack[sp] = x;
+                sp += 1;
+            }
+            Op::Y => {
+                stack[sp] = y;
+                sp += 1;
+            }
+            Op::T => {
+                stack[sp] = t;
+                sp += 1;
+            }
+            Op::Num(n) => {
+                stack[sp] = n;
+                sp += 1;
+            }
+            Op::Abs => stack[sp - 1] = stack[sp - 1].abs(),
+            Op::Sqrt => stack[sp - 1] = stack[sp - 1].abs().sqrt(),
+            Op::Sin => stack[sp - 1] = (stack[sp - 1] * std::f32::consts::PI).sin(),
+            Op::Add => {
+                sp -= 1;
+                stack[sp - 1] += stack[sp];
+            }
+            Op::Mult => {
+                sp -= 1;
+                stack[sp - 1] *= stack[sp];
+            }
+            Op::Mod => {
+                sp -= 1;
+                let bv = stack[sp].abs().max(0.001);
+                stack[sp - 1] = stack[sp - 1].rem_euclid(bv) / bv * 2.0 - 1.0;
+            }
+            Op::Mix => {
+                // stack: [..., a, b, c]  sp points past c
+                // after sp-=2: stack[sp-1]=a, stack[sp]=b, stack[sp+1]=c
+                sp -= 2;
+                let w = ((stack[sp + 1] + 1.0) * 0.5).clamp(0.0, 1.0);
+                stack[sp - 1] = stack[sp - 1] * (1.0 - w) + stack[sp] * w;
+            }
+        }
+    }
+    stack[0]
 }
 
 // ─── Expression tree ─────────────────────────────────────────────────────────
@@ -464,24 +570,45 @@ enum Expr {
 }
 
 impl Expr {
-    fn eval(&self, x: f32, y: f32, t: f32) -> f32 {
+    /// Compile the expression tree to a flat postfix bytecode program.
+    fn compile(&self, ops: &mut Vec<Op>) {
         match self {
-            Expr::X => x,
-            Expr::Y => y,
-            Expr::T => t,
-            Expr::Num(n) => *n,
-            Expr::Add(a, b) => a.eval(x, y, t) + b.eval(x, y, t),
-            Expr::Mult(a, b) => a.eval(x, y, t) * b.eval(x, y, t),
-            Expr::Sqrt(e) => e.eval(x, y, t).abs().sqrt(),
-            Expr::Abs(e) => e.eval(x, y, t).abs(),
-            Expr::Sin(e) => (e.eval(x, y, t) * std::f32::consts::PI).sin(),
+            Expr::X => ops.push(Op::X),
+            Expr::Y => ops.push(Op::Y),
+            Expr::T => ops.push(Op::T),
+            Expr::Num(n) => ops.push(Op::Num(*n)),
+            Expr::Abs(e) => {
+                e.compile(ops);
+                ops.push(Op::Abs);
+            }
+            Expr::Sqrt(e) => {
+                e.compile(ops);
+                ops.push(Op::Sqrt);
+            }
+            Expr::Sin(e) => {
+                e.compile(ops);
+                ops.push(Op::Sin);
+            }
+            Expr::Add(a, b) => {
+                a.compile(ops);
+                b.compile(ops);
+                ops.push(Op::Add);
+            }
+            Expr::Mult(a, b) => {
+                a.compile(ops);
+                b.compile(ops);
+                ops.push(Op::Mult);
+            }
             Expr::Mod(a, b) => {
-                let bv = b.eval(x, y, t).abs().max(0.001);
-                a.eval(x, y, t).rem_euclid(bv) / bv * 2.0 - 1.0
+                a.compile(ops);
+                b.compile(ops);
+                ops.push(Op::Mod);
             }
             Expr::Mix(a, b, c) => {
-                let w = ((c.eval(x, y, t) + 1.0) * 0.5).clamp(0.0, 1.0);
-                a.eval(x, y, t) * (1.0 - w) + b.eval(x, y, t) * w
+                a.compile(ops);
+                b.compile(ops);
+                c.compile(ops);
+                ops.push(Op::Mix);
             }
         }
     }
