@@ -100,7 +100,13 @@ fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>, params: Res<
     let seed: u64 = rand::thread_rng().r#gen();
     let (state, handle) = new_art(seed, &params, &mut images);
     commands.insert_resource(state);
-    commands.spawn((Sprite { image: handle, ..default() }, ArtSprite));
+    commands.spawn((
+        Sprite {
+            image: handle,
+            ..default()
+        },
+        ArtSprite,
+    ));
 }
 
 fn handle_regen(
@@ -124,7 +130,13 @@ fn handle_regen(
     let seed: u64 = rand::thread_rng().r#gen();
     let (state, handle) = new_art(seed, &params, &mut images);
     commands.insert_resource(state);
-    commands.spawn((Sprite { image: handle, ..default() }, ArtSprite));
+    commands.spawn((
+        Sprite {
+            image: handle,
+            ..default()
+        },
+        ArtSprite,
+    ));
 }
 
 fn ui(
@@ -356,13 +368,14 @@ fn apply_style(ctx: &egui::Context) {
 
     ctx.set_visuals(v);
 
-    let mut s = (*ctx.style()).clone();
+    let theme = ctx.theme();
+    let mut s = (*ctx.style_of(theme)).clone();
     s.override_font_id = Some(FontId::monospace(12.0));
     s.spacing.item_spacing = egui::vec2(8.0, 6.0);
     s.spacing.button_padding = egui::vec2(12.0, 8.0);
     s.spacing.interact_size = egui::vec2(40.0, 28.0);
     s.spacing.slider_width = 160.0;
-    ctx.set_style(s);
+    ctx.set_style_of(theme, s);
 }
 
 fn animate(
@@ -414,7 +427,7 @@ fn animate(
 
     // Write into the image's existing Vec when possible (avoids reallocation).
     let handle = art.image.clone();
-    if let Some(image) = images.get_mut(&handle) {
+    if let Some(mut image) = images.get_mut(&handle) {
         match &mut image.data {
             Some(data) if data.len() == size => data.copy_from_slice(&pixel_buf),
             slot => *slot = Some(pixel_buf.clone()),
@@ -468,7 +481,11 @@ fn new_art(seed: u64, params: &Params, images: &mut Assets<Image>) -> (ArtState,
     pixels.chunks_mut(4).enumerate().for_each(eval);
 
     let image = Image::new(
-        Extent3d { width: img_w, height: img_h, depth_or_array_layers: 1 },
+        Extent3d {
+            width: img_w,
+            height: img_h,
+            depth_or_array_layers: 1,
+        },
         TextureDimension::D2,
         pixels,
         TextureFormat::Rgba8UnormSrgb,
@@ -476,7 +493,17 @@ fn new_art(seed: u64, params: &Params, images: &mut Assets<Image>) -> (ArtState,
     );
     let handle = images.add(image);
     (
-        ArtState { r, g, b, r_prog, g_prog, b_prog, image: handle.clone(), img_w, img_h },
+        ArtState {
+            r,
+            g,
+            b,
+            r_prog,
+            g_prog,
+            b_prog,
+            image: handle.clone(),
+            img_w,
+            img_h,
+        },
         handle,
     )
 }

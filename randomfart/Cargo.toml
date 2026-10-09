@@ -11,8 +11,8 @@ name = "randomfart-desktop"
 path = "src/main.rs"
 
 [dependencies]
-bevy = { version = "0.18", features = ["webgpu"] }
-bevy_egui = "0.39"
+bevy = { version = "0.20", features = ["webgpu"] }
+bevy_egui = "0.43.0-rc.1"
 rand = "0.8"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
