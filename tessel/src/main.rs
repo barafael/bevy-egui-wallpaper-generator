@@ -1701,9 +1701,17 @@ fn ui(
 
     let ctx = ctx.ctx_mut()?;
 
+    let mut viewport_ui = egui::Ui::new(
+        ctx.clone(),
+        "viewport".into(),
+        egui::UiBuilder::new()
+            .layer_id(egui::LayerId::background())
+            .max_rect(ctx.viewport_rect()),
+    );
+
     egui::CentralPanel::default()
         .frame(egui::Frame::NONE)
-        .show(ctx, |_ui| {});
+        .show(&mut viewport_ui, |_ui| {});
 
     egui::Window::new("Parameters")
         .resizable(false)
@@ -2827,46 +2835,46 @@ fn ui(
             window.resolution = bevy::window::WindowResolution::new(params.out_w, params.out_h);
         }
         let quad: Mesh = Rectangle::new(params.out_w as f32, params.out_h as f32).into();
-        if let Some(mesh) = meshes.get_mut(&handles.ht_mesh.0) {
+        if let Some(mut mesh) = meshes.get_mut(&handles.ht_mesh.0) {
             *mesh = quad.clone();
         }
-        if let Some(mesh) = meshes.get_mut(&handles.tp_mesh.0) {
+        if let Some(mut mesh) = meshes.get_mut(&handles.tp_mesh.0) {
             *mesh = quad.clone();
         }
-        if let Some(mesh) = meshes.get_mut(&handles.ms_mesh.0) {
+        if let Some(mut mesh) = meshes.get_mut(&handles.ms_mesh.0) {
             *mesh = quad.clone();
         }
-        if let Some(mesh) = meshes.get_mut(&handles.eg_mesh.0) {
+        if let Some(mut mesh) = meshes.get_mut(&handles.eg_mesh.0) {
             *mesh = quad.clone();
         }
-        if let Some(mesh) = meshes.get_mut(&handles.wfc_mesh.0) {
+        if let Some(mut mesh) = meshes.get_mut(&handles.wfc_mesh.0) {
             *mesh = quad.clone();
         }
-        if let Some(mesh) = meshes.get_mut(&handles.ck_mesh.0) {
+        if let Some(mut mesh) = meshes.get_mut(&handles.ck_mesh.0) {
             *mesh = quad.clone();
         }
-        if let Some(mesh) = meshes.get_mut(&handles.ff_mesh.0) {
+        if let Some(mut mesh) = meshes.get_mut(&handles.ff_mesh.0) {
             *mesh = quad.clone();
         }
-        if let Some(mesh) = meshes.get_mut(&handles.oa_mesh.0) {
+        if let Some(mut mesh) = meshes.get_mut(&handles.oa_mesh.0) {
             *mesh = quad.clone();
         }
-        if let Some(mesh) = meshes.get_mut(&handles.wv_mesh.0) {
+        if let Some(mut mesh) = meshes.get_mut(&handles.wv_mesh.0) {
             *mesh = quad.clone();
         }
-        if let Some(mesh) = meshes.get_mut(&handles.sa_mesh.0) {
+        if let Some(mut mesh) = meshes.get_mut(&handles.sa_mesh.0) {
             *mesh = quad.clone();
         }
-        if let Some(mesh) = meshes.get_mut(&handles.rd_mesh.0) {
+        if let Some(mut mesh) = meshes.get_mut(&handles.rd_mesh.0) {
             *mesh = quad.clone();
         }
-        if let Some(mesh) = meshes.get_mut(&handles.mz_mesh.0) {
+        if let Some(mut mesh) = meshes.get_mut(&handles.mz_mesh.0) {
             *mesh = quad.clone();
         }
-        if let Some(mesh) = meshes.get_mut(&handles.cb_mesh.0) {
+        if let Some(mut mesh) = meshes.get_mut(&handles.cb_mesh.0) {
             *mesh = quad.clone();
         }
-        if let Some(mesh) = meshes.get_mut(&handles.bp_mesh.0) {
+        if let Some(mut mesh) = meshes.get_mut(&handles.bp_mesh.0) {
             *mesh = quad.clone();
         }
         // Recreate render target at new size, update Camera A target and blur material.
@@ -2875,12 +2883,12 @@ fn ui(
         if let Ok(mut rt_comp) = post.cam_targets.get_mut(post.scene_cam.0) {
             *rt_comp = RenderTarget::Image(new_rt.clone().into());
         }
-        if let Some(mat) = post.blur_mat.get_mut(&post.blur_h.0) {
+        if let Some(mut mat) = post.blur_mat.get_mut(&post.blur_h.0) {
             mat.source = new_rt;
             mat.uniforms.inv_w = 1.0 / params.out_w as f32;
             mat.uniforms.inv_h = 1.0 / params.out_h as f32;
         }
-        if let Some(mesh) = meshes.get_mut(&post.blur_mesh.0) {
+        if let Some(mut mesh) = meshes.get_mut(&post.blur_mesh.0) {
             *mesh = quad;
         }
     }
@@ -2894,22 +2902,22 @@ fn ui(
     {
         let new_mesh = dispatch_mesh(&params);
         for (mesh2d, _) in lp_query.iter() {
-            if let Some(mesh) = meshes.get_mut(&mesh2d.0) {
+            if let Some(mut mesh) = meshes.get_mut(&mesh2d.0) {
                 *mesh = new_mesh.clone();
             }
         }
     }
 
-    if ht_dirty && let Some(mat) = mats.ht.get_mut(&handles.ht_mat.0) {
+    if ht_dirty && let Some(mut mat) = mats.ht.get_mut(&handles.ht_mat.0) {
         mat.uniforms = params.to_ht_uniforms();
     }
-    if tp_dirty && let Some(mat) = mats.tp.get_mut(&handles.tp_mat.0) {
+    if tp_dirty && let Some(mut mat) = mats.tp.get_mut(&handles.tp_mat.0) {
         mat.uniforms = params.to_topo_uniforms();
     }
-    if ms_dirty && let Some(mat) = mats.ms.get_mut(&handles.ms_mat.0) {
+    if ms_dirty && let Some(mut mat) = mats.ms.get_mut(&handles.ms_mat.0) {
         mat.uniforms = params.to_mosaic_uniforms();
     }
-    if eg_dirty && let Some(mat) = mats.eg.get_mut(&handles.eg_mat.0) {
+    if eg_dirty && let Some(mut mat) = mats.eg.get_mut(&handles.eg_mat.0) {
         mat.uniforms = params.to_engrave_uniforms();
     }
     if wfc_grid_dirty {
@@ -2921,40 +2929,44 @@ fn ui(
         );
         params.wfc_grid = new_grid;
     }
-    if (wfc_grid_dirty || wfc_vis_dirty) && let Some(mat) = mats.wfc.get_mut(&handles.wfc_mat.0) {
+    if (wfc_grid_dirty || wfc_vis_dirty)
+        && let Some(mut mat) = mats.wfc.get_mut(&handles.wfc_mat.0)
+    {
         mat.uniforms = params.to_wfc_uniforms();
     }
-    if ck_dirty && let Some(mat) = mats.ck.get_mut(&handles.ck_mat.0) {
+    if ck_dirty && let Some(mut mat) = mats.ck.get_mut(&handles.ck_mat.0) {
         mat.uniforms = params.to_crackle_uniforms();
     }
-    if ff_dirty && let Some(mat) = mats.ff.get_mut(&handles.ff_mat.0) {
+    if ff_dirty && let Some(mut mat) = mats.ff.get_mut(&handles.ff_mat.0) {
         mat.uniforms = params.to_ff_uniforms();
     }
-    if oa_dirty && let Some(mat) = mats.oa.get_mut(&handles.oa_mat.0) {
+    if oa_dirty && let Some(mut mat) = mats.oa.get_mut(&handles.oa_mat.0) {
         mat.uniforms = params.to_oa_uniforms();
     }
-    if wv_dirty && let Some(mat) = mats.wv.get_mut(&handles.wv_mat.0) {
+    if wv_dirty && let Some(mut mat) = mats.wv.get_mut(&handles.wv_mat.0) {
         mat.uniforms = params.to_wv_uniforms();
     }
-    if sa_dirty && let Some(mat) = mats.sa.get_mut(&handles.sa_mat.0) {
+    if sa_dirty && let Some(mut mat) = mats.sa.get_mut(&handles.sa_mat.0) {
         mat.uniforms = params.to_sa_uniforms();
     }
-    if rd_dirty && let Some(mat) = mats.rd.get_mut(&handles.rd_mat.0) {
+    if rd_dirty && let Some(mut mat) = mats.rd.get_mut(&handles.rd_mat.0) {
         mat.uniforms = params.to_rd_uniforms();
     }
     if mz_grid_dirty {
         params.mz_grid = run_maze(params.mz_grid_w, params.mz_grid_h, params.seed);
     }
-    if (mz_grid_dirty || mz_vis_dirty) && let Some(mat) = mats.mz.get_mut(&handles.mz_mat.0) {
+    if (mz_grid_dirty || mz_vis_dirty)
+        && let Some(mut mat) = mats.mz.get_mut(&handles.mz_mat.0)
+    {
         mat.uniforms = params.to_mz_uniforms();
     }
-    if cb_dirty && let Some(mat) = mats.cb.get_mut(&handles.cb_mat.0) {
+    if cb_dirty && let Some(mut mat) = mats.cb.get_mut(&handles.cb_mat.0) {
         mat.uniforms = params.to_cb_uniforms();
     }
-    if bp_dirty && let Some(mat) = mats.bp.get_mut(&handles.bp_mat.0) {
+    if bp_dirty && let Some(mut mat) = mats.bp.get_mut(&handles.bp_mat.0) {
         mat.uniforms = params.to_bp_uniforms();
     }
-    if blur_dirty && let Some(mat) = post.blur_mat.get_mut(&post.blur_h.0) {
+    if blur_dirty && let Some(mut mat) = post.blur_mat.get_mut(&post.blur_h.0) {
         mat.uniforms.radius = params.blur_radius;
     }
 
@@ -3311,8 +3323,8 @@ fn wfc_compatible(a: u8, b: u8, dx: i32, dy: i32) -> bool {
     match (dx, dy) {
         (1, 0) => (a >> 1 & 1) == (b >> 3 & 1),  // a.right == b.left
         (-1, 0) => (a >> 3 & 1) == (b >> 1 & 1), // a.left  == b.right
-        (0, 1) => (a >> 2 & 1) == (b & 1),        // a.bottom == b.top
-        (0, -1) => (a & 1) == (b >> 2 & 1),       // a.top   == b.bottom
+        (0, 1) => (a >> 2 & 1) == (b & 1),       // a.bottom == b.top
+        (0, -1) => (a & 1) == (b >> 2 & 1),      // a.top   == b.bottom
         _ => true,
     }
 }
@@ -3327,7 +3339,13 @@ fn run_wfc(w: usize, h: usize, tiles: &[u8], seed: u64) -> Vec<u8> {
     let h_t = if tiles.contains(&10) { 10 } else { tiles[0] };
     let v_t = if tiles.contains(&5) { 5 } else { tiles[0] };
     (0..w * h)
-        .map(|i| if (i / w + i % w).is_multiple_of(2) { h_t } else { v_t })
+        .map(|i| {
+            if (i / w + i % w).is_multiple_of(2) {
+                h_t
+            } else {
+                v_t
+            }
+        })
         .collect()
 }
 
