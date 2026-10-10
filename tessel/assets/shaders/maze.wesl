@@ -1,4 +1,4 @@
-#import bevy_sprite::mesh2d_vertex_output::VertexOutput
+import bevy_sprite_render::mesh2d::vertex_output::VertexOutput;
 
 // Wall bitmask per cell: bit0=top, bit1=right, bit2=bottom, bit3=left
 // Packing: 8 cells per u32 (4 bits each), 4 u32s per vec4<u32>
@@ -14,7 +14,7 @@ struct MazeUniforms {
     walls:       array<vec4<u32>, 32>,
 }
 
-@group(2) @binding(0) var<uniform> u: MazeUniforms;
+@group(constants::MATERIAL_BIND_GROUP) @binding(0) var<uniform> u: MazeUniforms;
 
 fn get_walls(x: u32, y: u32) -> u32 {
     let idx     = y * u.grid_w + x;

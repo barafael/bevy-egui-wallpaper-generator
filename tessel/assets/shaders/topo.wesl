@@ -1,4 +1,4 @@
-#import bevy_sprite::mesh2d_vertex_output::VertexOutput
+import bevy_sprite_render::mesh2d::vertex_output::VertexOutput;
 
 struct TopoUniforms {
     noise_scale: f32,
@@ -14,7 +14,7 @@ struct TopoUniforms {
     line_color:  vec4<f32>,
 }
 
-@group(2) @binding(0)
+@group(constants::MATERIAL_BIND_GROUP) @binding(0)
 var<uniform> u: TopoUniforms;
 
 // --- Gradient (Perlin-style) noise ---

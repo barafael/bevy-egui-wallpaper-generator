@@ -1,4 +1,4 @@
-#import bevy_sprite::mesh2d_vertex_output::VertexOutput
+import bevy_sprite_render::mesh2d::vertex_output::VertexOutput;
 
 struct EngraveUniforms {
     noise_scale:  f32,
@@ -13,7 +13,7 @@ struct EngraveUniforms {
     dot_color:    vec4<f32>,
 }
 
-@group(2) @binding(0)
+@group(constants::MATERIAL_BIND_GROUP) @binding(0)
 var<uniform> u: EngraveUniforms;
 
 // ── Gradient noise ────────────────────────────────────────────────────────────

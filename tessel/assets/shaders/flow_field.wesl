@@ -1,4 +1,4 @@
-#import bevy_sprite::mesh2d_vertex_output::VertexOutput
+import bevy_sprite_render::mesh2d::vertex_output::VertexOutput;
 
 struct FlowFieldUniforms {
     freq:       f32,
@@ -15,7 +15,7 @@ struct FlowFieldUniforms {
     c_br:       vec4<f32>,
 }
 
-@group(2) @binding(0) var<uniform> u: FlowFieldUniforms;
+@group(constants::MATERIAL_BIND_GROUP) @binding(0) var<uniform> u: FlowFieldUniforms;
 
 fn hash11(n: f32) -> f32 {
     return fract(sin(n) * 43758.5453);

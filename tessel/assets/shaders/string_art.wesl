@@ -1,4 +1,4 @@
-#import bevy_sprite::mesh2d_vertex_output::VertexOutput
+import bevy_sprite_render::mesh2d::vertex_output::VertexOutput;
 
 struct StringArtUniforms {
     n_points:   f32,
@@ -11,7 +11,7 @@ struct StringArtUniforms {
     bg_color:   vec4<f32>,
 }
 
-@group(2) @binding(0) var<uniform> u: StringArtUniforms;
+@group(constants::MATERIAL_BIND_GROUP) @binding(0) var<uniform> u: StringArtUniforms;
 
 fn sdf_seg(p: vec2<f32>, a: vec2<f32>, b: vec2<f32>) -> f32 {
     let ab = b - a;

@@ -1,4 +1,4 @@
-#import bevy_sprite::mesh2d_vertex_output::VertexOutput
+import bevy_sprite_render::mesh2d::vertex_output::VertexOutput;
 
 struct WeaveUniforms {
     thread_count: f32,
@@ -14,7 +14,7 @@ struct WeaveUniforms {
     bg_color:     vec4<f32>,
 }
 
-@group(2) @binding(0) var<uniform> u: WeaveUniforms;
+@group(constants::MATERIAL_BIND_GROUP) @binding(0) var<uniform> u: WeaveUniforms;
 
 fn hash11(p: f32) -> f32 {
     var x = fract(p * 0.1031);

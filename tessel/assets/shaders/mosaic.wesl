@@ -1,4 +1,4 @@
-#import bevy_sprite::mesh2d_vertex_output::VertexOutput
+import bevy_sprite_render::mesh2d::vertex_output::VertexOutput;
 
 struct MosaicUniforms {
     tile_count:  f32,
@@ -18,7 +18,7 @@ struct MosaicUniforms {
     c_br:        vec4<f32>,
 }
 
-@group(2) @binding(0)
+@group(constants::MATERIAL_BIND_GROUP) @binding(0)
 var<uniform> u: MosaicUniforms;
 
 fn hash1(p: vec2<f32>) -> f32 {

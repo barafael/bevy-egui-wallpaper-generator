@@ -368,14 +368,13 @@ fn apply_style(ctx: &egui::Context) {
 
     ctx.set_visuals(v);
 
-    let theme = ctx.theme();
-    let mut s = (*ctx.style_of(theme)).clone();
-    s.override_font_id = Some(FontId::monospace(12.0));
-    s.spacing.item_spacing = egui::vec2(8.0, 6.0);
-    s.spacing.button_padding = egui::vec2(12.0, 8.0);
-    s.spacing.interact_size = egui::vec2(40.0, 28.0);
-    s.spacing.slider_width = 160.0;
-    ctx.set_style_of(theme, s);
+    ctx.global_style_mut(|s| {
+        s.override_font_id = Some(FontId::monospace(12.0));
+        s.spacing.item_spacing = egui::vec2(8.0, 6.0);
+        s.spacing.button_padding = egui::vec2(12.0, 8.0);
+        s.spacing.interact_size = egui::vec2(40.0, 28.0);
+        s.spacing.slider_width = 160.0;
+    });
 }
 
 fn animate(
@@ -437,9 +436,12 @@ fn animate(
 
 fn fit_to_window(window: Query<&Window>, mut sprite: Query<&mut Sprite, With<ArtSprite>>) {
     let Ok(window) = window.single() else { return };
-    let size = Vec2::new(window.width(), window.height());
+    let size = Some(Vec2::new(window.width(), window.height()));
+    // Only write on an actual change: every `Sprite` change re-resolves its mesh material.
     for mut sprite in &mut sprite {
-        sprite.custom_size = Some(size);
+        if sprite.custom_size != size {
+            sprite.custom_size = size;
+        }
     }
 }
 

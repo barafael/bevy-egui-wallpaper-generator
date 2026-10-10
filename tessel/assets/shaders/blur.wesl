@@ -1,4 +1,4 @@
-#import bevy_sprite::mesh2d_vertex_output::VertexOutput
+import bevy_sprite_render::mesh2d::vertex_output::VertexOutput;
 
 struct BlurUniforms {
     radius: f32,
@@ -7,9 +7,9 @@ struct BlurUniforms {
     _pad:   f32,
 }
 
-@group(2) @binding(0) var<uniform> u: BlurUniforms;
-@group(2) @binding(1) var t: texture_2d<f32>;
-@group(2) @binding(2) var s: sampler;
+@group(constants::MATERIAL_BIND_GROUP) @binding(0) var<uniform> u: BlurUniforms;
+@group(constants::MATERIAL_BIND_GROUP) @binding(1) var t: texture_2d<f32>;
+@group(constants::MATERIAL_BIND_GROUP) @binding(2) var s: sampler;
 
 fn gauss(d: f32) -> f32 {
     return exp(-0.5 * d * d);
