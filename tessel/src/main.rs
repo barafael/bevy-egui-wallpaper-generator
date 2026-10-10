@@ -13,7 +13,9 @@ use bevy::{
     shader::ShaderRef,
     sprite_render::{Material2d, Material2dPlugin},
 };
-use bevy_egui::{EguiContexts, EguiPlugin, EguiPrimaryContextPass, egui};
+use bevy_egui::{
+    EguiContexts, EguiGlobalSettings, EguiPlugin, EguiPrimaryContextPass, PrimaryEguiContext, egui,
+};
 use rand::{Rng, SeedableRng, rngs::StdRng};
 
 // ── Style / Tab ───────────────────────────────────────────────────────────────
@@ -772,7 +774,7 @@ struct HalftoneMaterial {
 
 impl Material2d for HalftoneMaterial {
     fn fragment_shader() -> ShaderRef {
-        "shaders/halftone.wgsl".into()
+        "shaders/halftone.wesl".into()
     }
 }
 
@@ -807,7 +809,7 @@ struct TopoMaterial {
 
 impl Material2d for TopoMaterial {
     fn fragment_shader() -> ShaderRef {
-        "shaders/topo.wgsl".into()
+        "shaders/topo.wesl".into()
     }
 }
 
@@ -841,7 +843,7 @@ struct EngraveMaterial {
 
 impl Material2d for EngraveMaterial {
     fn fragment_shader() -> ShaderRef {
-        "shaders/engrave.wgsl".into()
+        "shaders/engrave.wesl".into()
     }
 }
 
@@ -880,7 +882,7 @@ struct MosaicMaterial {
 
 impl Material2d for MosaicMaterial {
     fn fragment_shader() -> ShaderRef {
-        "shaders/mosaic.wgsl".into()
+        "shaders/mosaic.wesl".into()
     }
 }
 
@@ -915,7 +917,7 @@ struct WfcMaterial {
 
 impl Material2d for WfcMaterial {
     fn fragment_shader() -> ShaderRef {
-        "shaders/wfc.wgsl".into()
+        "shaders/wfc.wesl".into()
     }
 }
 
@@ -952,7 +954,7 @@ struct CrackleMaterial {
 
 impl Material2d for CrackleMaterial {
     fn fragment_shader() -> ShaderRef {
-        "shaders/crackle.wgsl".into()
+        "shaders/crackle.wesl".into()
     }
 }
 
@@ -985,7 +987,7 @@ struct FlowFieldMaterial {
 }
 impl Material2d for FlowFieldMaterial {
     fn fragment_shader() -> ShaderRef {
-        "shaders/flow_field.wgsl".into()
+        "shaders/flow_field.wesl".into()
     }
 }
 #[derive(Resource)]
@@ -1015,7 +1017,7 @@ struct OpArtMaterial {
 }
 impl Material2d for OpArtMaterial {
     fn fragment_shader() -> ShaderRef {
-        "shaders/op_art.wgsl".into()
+        "shaders/op_art.wesl".into()
     }
 }
 #[derive(Resource)]
@@ -1046,7 +1048,7 @@ struct WeaveMaterial {
 }
 impl Material2d for WeaveMaterial {
     fn fragment_shader() -> ShaderRef {
-        "shaders/weave.wgsl".into()
+        "shaders/weave.wesl".into()
     }
 }
 #[derive(Resource)]
@@ -1074,7 +1076,7 @@ struct StringArtMaterial {
 }
 impl Material2d for StringArtMaterial {
     fn fragment_shader() -> ShaderRef {
-        "shaders/string_art.wgsl".into()
+        "shaders/string_art.wesl".into()
     }
 }
 #[derive(Resource)]
@@ -1108,7 +1110,7 @@ struct RdMaterial {
 }
 impl Material2d for RdMaterial {
     fn fragment_shader() -> ShaderRef {
-        "shaders/reaction_diffusion.wgsl".into()
+        "shaders/reaction_diffusion.wesl".into()
     }
 }
 #[derive(Resource)]
@@ -1135,7 +1137,7 @@ struct MazeMaterial {
 }
 impl Material2d for MazeMaterial {
     fn fragment_shader() -> ShaderRef {
-        "shaders/maze.wgsl".into()
+        "shaders/maze.wesl".into()
     }
 }
 #[derive(Resource)]
@@ -1166,7 +1168,7 @@ struct CircuitMaterial {
 }
 impl Material2d for CircuitMaterial {
     fn fragment_shader() -> ShaderRef {
-        "shaders/circuit.wgsl".into()
+        "shaders/circuit.wesl".into()
     }
 }
 #[derive(Resource)]
@@ -1198,7 +1200,7 @@ struct BubbleMaterial {
 }
 impl Material2d for BubbleMaterial {
     fn fragment_shader() -> ShaderRef {
-        "shaders/bubble.wgsl".into()
+        "shaders/bubble.wesl".into()
     }
 }
 #[derive(Resource)]
@@ -1227,7 +1229,7 @@ struct BlurMaterial {
 
 impl Material2d for BlurMaterial {
     fn fragment_shader() -> ShaderRef {
-        "shaders/blur.wgsl".into()
+        "shaders/blur.wesl".into()
     }
 }
 
@@ -1242,7 +1244,7 @@ struct SceneRenderTarget(Handle<Image>);
 #[derive(Resource)]
 struct SceneCameraEntity(Entity);
 
-/// Marker component on every WGSL-shader quad; carries the style it belongs to.
+/// Marker component on every full-screen shader quad; carries the style it belongs to.
 #[derive(Component, Clone, Copy)]
 struct StyleId(Style);
 
@@ -1298,7 +1300,7 @@ struct ShaderMaterials<'w> {
     bp: ResMut<'w, Assets<BubbleMaterial>>,
 }
 
-/// Single query handles visibility for all WGSL-shader quads via StyleId.
+/// Single query handles visibility for all full-screen shader quads via StyleId.
 #[derive(SystemParam)]
 struct StyleVis<'w, 's> {
     q: Query<'w, 's, (&'static mut Visibility, &'static StyleId), Without<TesselMesh>>,
@@ -1387,6 +1389,7 @@ fn setup(
     mut new_mats: NewStyleAssets,
     mut blur_materials: ResMut<Assets<BlurMaterial>>,
     mut images: ResMut<Assets<Image>>,
+    mut egui_settings: ResMut<EguiGlobalSettings>,
     params: Res<Params>,
 ) {
     // Create intermediate render target; Camera A writes here, blur quad reads it.
@@ -1394,9 +1397,10 @@ fn setup(
     commands.insert_resource(SceneRenderTarget(rt.clone()));
 
     // Camera B: renders the blur quad to the primary window (layer 1).
-    // Spawned FIRST so bevy_egui auto-attaches the primary context to this camera
-    // (window camera), not to Camera A (render-target camera).  Egui input
-    // coordinates are then in screen space, making controls clickable.
+    // It hosts the primary egui context, so egui draws onto the window and its
+    // input coordinates are in screen space. Automatic context creation is
+    // disabled so the context never lands on Camera A (render-target camera).
+    egui_settings.auto_create_primary_context = false;
     commands.spawn((
         Camera2d,
         Camera {
@@ -1404,6 +1408,7 @@ fn setup(
             ..default()
         },
         RenderLayers::layer(1),
+        PrimaryEguiContext,
     ));
 
     // Camera A: renders all scene geometry to the render target (layer 0).
@@ -1700,18 +1705,6 @@ fn ui(
     }
 
     let ctx = ctx.ctx_mut()?;
-
-    let mut viewport_ui = egui::Ui::new(
-        ctx.clone(),
-        "viewport".into(),
-        egui::UiBuilder::new()
-            .layer_id(egui::LayerId::background())
-            .max_rect(ctx.viewport_rect()),
-    );
-
-    egui::CentralPanel::default()
-        .frame(egui::Frame::NONE)
-        .show(&mut viewport_ui, |_ui| {});
 
     egui::Window::new("Parameters")
         .resizable(false)
@@ -2970,21 +2963,21 @@ fn ui(
         mat.uniforms.radius = params.blur_radius;
     }
 
-    // Sync visibility: only one style visible at a time
+    // Sync visibility: only one style visible at a time (written only on change)
     let style = params.style;
-    for (_, mut vis) in lp_query.iter_mut() {
-        *vis = if matches!(style, Style::LowPoly | Style::Voronoi | Style::Penrose) {
+    let shown = |visible: bool| {
+        if visible {
             Visibility::Visible
         } else {
             Visibility::Hidden
-        };
+        }
+    };
+    let mesh_style = matches!(style, Style::LowPoly | Style::Voronoi | Style::Penrose);
+    for (_, mut vis) in lp_query.iter_mut() {
+        vis.set_if_neq(shown(mesh_style));
     }
     for (mut vis, id) in sv.q.iter_mut() {
-        *vis = if id.0 == style {
-            Visibility::Visible
-        } else {
-            Visibility::Hidden
-        };
+        vis.set_if_neq(shown(id.0 == style));
     }
 
     Ok(())

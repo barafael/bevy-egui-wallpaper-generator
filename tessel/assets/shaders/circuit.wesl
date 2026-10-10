@@ -1,4 +1,4 @@
-#import bevy_sprite::mesh2d_vertex_output::VertexOutput
+import bevy_sprite_render::mesh2d::vertex_output::VertexOutput;
 
 struct CircuitUniforms {
     cell_size:   f32,
@@ -14,7 +14,7 @@ struct CircuitUniforms {
     bg_color:    vec4<f32>,
 }
 
-@group(2) @binding(0) var<uniform> u: CircuitUniforms;
+@group(constants::MATERIAL_BIND_GROUP) @binding(0) var<uniform> u: CircuitUniforms;
 
 fn hash21(p: vec2<f32>) -> f32 {
     return fract(sin(dot(p, vec2<f32>(127.1, 311.7))) * 43758.5453123);

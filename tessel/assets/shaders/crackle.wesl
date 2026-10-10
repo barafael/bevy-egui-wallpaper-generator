@@ -1,4 +1,4 @@
-#import bevy_sprite::mesh2d_vertex_output::VertexOutput
+import bevy_sprite_render::mesh2d::vertex_output::VertexOutput;
 
 // Crackle / ice-crack effect.
 // Uses domain-warped Worley (cellular) noise to produce organic crack networks.
@@ -21,7 +21,7 @@ struct CrackleUniforms {
     c_br:         vec4<f32>,   // Corner gradient — bottom-right
 }
 
-@group(2) @binding(0) var<uniform> u: CrackleUniforms;
+@group(constants::MATERIAL_BIND_GROUP) @binding(0) var<uniform> u: CrackleUniforms;
 
 fn hash11(n: f32) -> f32 {
     return fract(sin(n) * 43758.5453);

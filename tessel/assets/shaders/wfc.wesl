@@ -1,4 +1,4 @@
-#import bevy_sprite::mesh2d_vertex_output::VertexOutput
+import bevy_sprite_render::mesh2d::vertex_output::VertexOutput;
 
 // Tile bitmask: bit0=top, bit1=right, bit2=bottom, bit3=left
 // Packing: 8 tiles per u32 (4 bits each), 4 u32s per vec4<u32>
@@ -14,7 +14,7 @@ struct WfcUniforms {
     tiles:      array<vec4<u32>, 32>,
 }
 
-@group(2) @binding(0) var<uniform> u: WfcUniforms;
+@group(constants::MATERIAL_BIND_GROUP) @binding(0) var<uniform> u: WfcUniforms;
 
 fn hash1(p: vec2<u32>) -> f32 {
     var h = p.x * 1664525u + p.y * 1013904223u;

@@ -1,4 +1,4 @@
-#import bevy_sprite::mesh2d_vertex_output::VertexOutput
+import bevy_sprite_render::mesh2d::vertex_output::VertexOutput;
 
 struct BubbleUniforms {
     density:   f32,   // Voronoi seed density
@@ -15,7 +15,7 @@ struct BubbleUniforms {
     c_br:      vec4<f32>,
 }
 
-@group(2) @binding(0) var<uniform> u: BubbleUniforms;
+@group(constants::MATERIAL_BIND_GROUP) @binding(0) var<uniform> u: BubbleUniforms;
 
 // --- Hash functions ---
 

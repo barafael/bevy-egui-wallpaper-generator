@@ -1,4 +1,4 @@
-#import bevy_sprite::mesh2d_vertex_output::VertexOutput
+import bevy_sprite_render::mesh2d::vertex_output::VertexOutput;
 
 struct RdUniforms {
     scale:     f32,
@@ -17,7 +17,7 @@ struct RdUniforms {
     c_br:      vec4<f32>,
 }
 
-@group(2) @binding(0) var<uniform> u: RdUniforms;
+@group(constants::MATERIAL_BIND_GROUP) @binding(0) var<uniform> u: RdUniforms;
 
 fn hash11(p: f32) -> f32 {
     var x = fract(p * 0.1031);
