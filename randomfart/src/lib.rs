@@ -4,7 +4,7 @@ use bevy::{
     render::render_resource::{Extent3d, TextureDimension, TextureFormat},
 };
 use bevy_egui::{EguiContexts, EguiPlugin, EguiPrimaryContextPass, egui};
-use rand::{Rng, SeedableRng, rngs::StdRng};
+use rand::{RngExt, SeedableRng, rngs::StdRng};
 #[cfg(not(target_arch = "wasm32"))]
 use rayon::prelude::*;
 use std::fmt;
@@ -97,7 +97,7 @@ struct ArtState {
 
 fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>, params: Res<Params>) {
     commands.spawn(Camera2d);
-    let seed: u64 = rand::thread_rng().r#gen();
+    let seed: u64 = rand::rng().random();
     let (state, handle) = new_art(seed, &params, &mut images);
     commands.insert_resource(state);
     commands.spawn((
@@ -127,7 +127,7 @@ fn handle_regen(
     for e in &query {
         commands.entity(e).despawn();
     }
-    let seed: u64 = rand::thread_rng().r#gen();
+    let seed: u64 = rand::rng().random();
     let (state, handle) = new_art(seed, &params, &mut images);
     commands.insert_resource(state);
     commands.spawn((
@@ -650,7 +650,7 @@ impl Expr {
             + params.w_sin
             + params.w_mod
             + params.w_mix;
-        let roll = rng.r#gen::<u32>() % total;
+        let roll = rng.random::<u32>() % total;
         let t_end = params.w_terminal;
         let a_end = t_end + params.w_add;
         let m_end = a_end + params.w_mult;
@@ -697,8 +697,8 @@ impl Expr {
     }
 
     fn terminal(rng: &mut StdRng) -> Self {
-        match rng.r#gen::<u32>() % 7 {
-            0 => Expr::Num(rng.gen_range(-1.0f32..=1.0)),
+        match rng.random::<u32>() % 7 {
+            0 => Expr::Num(rng.random_range(-1.0f32..=1.0)),
             1 => Expr::X,
             2 => Expr::Y,
             3 => Expr::Abs(Box::new(Expr::X)),

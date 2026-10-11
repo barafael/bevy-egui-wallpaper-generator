@@ -16,7 +16,7 @@ use bevy::{
 use bevy_egui::{
     EguiContexts, EguiGlobalSettings, EguiPlugin, EguiPrimaryContextPass, PrimaryEguiContext, egui,
 };
-use rand::{Rng, SeedableRng, rngs::StdRng};
+use rand::{RngExt, SeedableRng, rngs::StdRng};
 
 // ── Style / Tab ───────────────────────────────────────────────────────────────
 
@@ -3053,12 +3053,12 @@ fn build_lowpoly(p: &Params) -> Mesh {
             let bx = col as f32 * cw - w * 0.5;
             let by = row as f32 * ch - h * 0.5;
             let jx = if col > 0 && col < cols {
-                rng.gen_range(-0.5..0.5) * jitter * cw
+                rng.random_range(-0.5..0.5) * jitter * cw
             } else {
                 0.0
             };
             let jy = if row > 0 && row < rows {
-                rng.gen_range(-0.5..0.5) * jitter * ch
+                rng.random_range(-0.5..0.5) * jitter * ch
             } else {
                 0.0
             };
@@ -3099,7 +3099,7 @@ fn lp_tri(
     let cx = (a[0] + b[0] + c[0]) / 3.0;
     let cy = (a[1] + b[1] + c[1]) / 3.0;
     let [r, g, bv, _] = bilinear(cx, cy, w, h, p.lp_c_tl, p.lp_c_tr, p.lp_c_bl, p.lp_c_br);
-    let v = rng.gen_range(-p.lp_color_var..p.lp_color_var);
+    let v = rng.random_range(-p.lp_color_var..p.lp_color_var);
     let clr = [
         (r + v).clamp(0., 1.),
         (g + v).clamp(0., 1.),
@@ -3128,12 +3128,12 @@ fn build_voronoi(p: &Params) -> Mesh {
             let bx = col as f32 * cw - w * 0.5;
             let by = row as f32 * ch - h * 0.5;
             let jx = if col > 0 && col < nc - 1 {
-                rng.gen_range(-0.5..0.5) * jitter * cw
+                rng.random_range(-0.5..0.5) * jitter * cw
             } else {
                 0.
             };
             let jy = if row > 0 && row < nr - 1 {
-                rng.gen_range(-0.5..0.5) * jitter * ch
+                rng.random_range(-0.5..0.5) * jitter * ch
             } else {
                 0.
             };
@@ -3161,7 +3161,7 @@ fn build_voronoi(p: &Params) -> Mesh {
             let [r, g, bv, _] = bilinear(
                 sp[0], sp[1], w, h, p.vor_c_tl, p.vor_c_tr, p.vor_c_bl, p.vor_c_br,
             );
-            let v = rng.gen_range(-p.vor_color_var..p.vor_color_var);
+            let v = rng.random_range(-p.vor_color_var..p.vor_color_var);
             let base = [
                 (r + v).clamp(0., 1.),
                 (g + v).clamp(0., 1.),
@@ -3357,7 +3357,7 @@ fn try_wfc(w: usize, h: usize, tiles: &[u8], seed: u64) -> Option<Vec<u8>> {
             return None;
         }
 
-        let idx = rng.gen_range(0..wave[cell].len());
+        let idx = rng.random_range(0..wave[cell].len());
         let chosen = wave[cell][idx];
         wave[cell] = vec![chosen];
 
@@ -3478,7 +3478,7 @@ fn run_maze(w: usize, h: usize, seed: u64) -> Vec<u8> {
         if neighbors.is_empty() {
             stack.pop();
         } else {
-            let &(nx, ny, wf, wt) = &neighbors[rng.gen_range(0..neighbors.len())];
+            let &(nx, ny, wf, wt) = &neighbors[rng.random_range(0..neighbors.len())];
             walls[cy * w + cx] &= !wf;
             walls[ny * w + nx] &= !wt;
             visited[ny * w + nx] = true;
@@ -3616,7 +3616,7 @@ fn build_penrose(p: &Params) -> Mesh {
             PTriKind::Red => p.pe_color_a,
             PTriKind::Blue => p.pe_color_b,
         };
-        let v = rng.gen_range(-p.pe_color_var..p.pe_color_var);
+        let v = rng.random_range(-p.pe_color_var..p.pe_color_var);
         let c = [
             (base[0] + v).clamp(0., 1.),
             (base[1] + v).clamp(0., 1.),
